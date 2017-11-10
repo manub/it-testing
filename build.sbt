@@ -15,5 +15,7 @@ libraryDependencies ++= Seq(
   "org.http4s" %% "http4s-blaze-client" % http4sVersion,
   "org.tpolecat" %% "doobie-core-cats" % doobieVersion,
   "org.tpolecat" %% "doobie-postgres-cats" % doobieVersion,
-  "org.flywaydb" % "flyway-core" % "4.2.0"
+  "org.flywaydb" % "flyway-core" % "4.2.0",
+  "com.typesafe" % "config" % "1.3.2",
+  "ch.qos.logback" % "logback-classic"
 )
