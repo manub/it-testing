@@ -2,7 +2,6 @@ package net.manub.ittesting
 
 import java.sql.DriverManager
 
-import com.typesafe.config.Config
 import com.whisk.docker.{
   DockerCommandExecutor,
   DockerContainer,
@@ -14,52 +13,44 @@ import com.whisk.docker.{
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-trait DockerPostgresService extends DockerKit {
-
-  def config: Config
+trait DockerPostgresService extends DockerKit with PostgresConfiguration {
 
   import scala.concurrent.duration._
 
   val PostgresAdvertisedPort = 5432
   val PostgresExposedPort = 5432
 
-  lazy val postgresUrl = config.getString("database.url")
-  lazy val postgresUser = config.getString("database.username")
-  lazy val postgresPassword = config.getString("database.password")
-  lazy val postgresContainer = DockerContainer("postgres:latest")
-    .withPorts((PostgresAdvertisedPort, Some(PostgresExposedPort)))
-    .withEnv(s"POSTGRES_USER=$postgresUser",
-             s"POSTGRES_PASSWORD=$postgresPassword",
-             s"POSTGRES_DB=mydb") // TODO change to url
-    .withReadyChecker(
-      new PostgresReadyChecker(postgresUrl,
-                               postgresUser,
-                               postgresPassword,
-                               Some(PostgresExposedPort))
-        .looped(15, 1.second)
-    )
+  lazy val postgresContainer: DockerContainer =
+    DockerContainer("postgres:latest")
+      .withPorts((PostgresAdvertisedPort, Some(PostgresExposedPort)))
+      .withEnv(s"POSTGRES_USER=$postgresUsername",
+               s"POSTGRES_PASSWORD=$postgresPassword",
+               s"POSTGRES_DB=$postgresDatabase")
+      .withReadyChecker(
+        new PostgresReadyChecker(postgresUrl, postgresUsername, postgresPassword).looped(15, 1.second)
+      )
 
   abstract override def dockerContainers: List[DockerContainer] =
     postgresContainer :: super.dockerContainers
+
+
 }
 
-class PostgresReadyChecker(url: String,
-                           user: String,
-                           password: String,
-                           port: Option[Int] = None)
-    extends DockerReadyChecker {
+class PostgresReadyChecker(url: String, username: String, password: String) extends DockerReadyChecker {
 
   override def apply(container: DockerContainerState)(
-      implicit docker: DockerCommandExecutor,
-      ec: ExecutionContext): Future[Boolean] =
+    implicit docker: DockerCommandExecutor,
+    ec: ExecutionContext): Future[Boolean] =
     container
       .getPorts()
       .map(ports =>
         Try {
           Class.forName("org.postgresql.Driver")
-//          val url =
-//            s"jdbc:postgresql://${docker.host}:${port.getOrElse(ports.values.head)}/"
-          DriverManager.getConnection(url, user, password).close()
+          //          val url =
+          //            s"jdbc:postgresql://${docker.host}:${port.getOrElse(ports.values.head)}/"
+          DriverManager
+            .getConnection(url, username, password)
+            .close()
           true
         }.getOrElse(false))
 }

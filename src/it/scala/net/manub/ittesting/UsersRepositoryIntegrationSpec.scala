@@ -19,20 +19,18 @@ class UsersRepositoryIntegrationSpec
     extends WordSpec
     with Matchers
     with ScalaFutures
+    with PostgresConfiguration
     with DockerTestKit // scalatest integration
     with DockerKitSpotify // docker client implementation
     with DockerPostgresService { // container rules
 
-  val config = ConfigFactory.load()
-  val url = config.getString("database.url")
-  val username = config.getString("database.username")
-  val password = config.getString("database.password")
+  override val config = ConfigFactory.load()
 
   val xa = DriverManagerTransactor[Task](
-    "org.postgresql.Driver",
-    url,
-    username,
-    password
+    PostgresDriver,
+    postgresUrl,
+    postgresUsername,
+    postgresPassword
   )
 
   val repository = new UsersRepository(config)
@@ -42,7 +40,7 @@ class UsersRepositoryIntegrationSpec
       "return all users on the database" in {
 
         val flyway = new Flyway()
-        flyway.setDataSource(url, username, password)
+        flyway.setDataSource(postgresUrl, postgresUsername, postgresPassword)
         flyway.migrate()
 
         val yolo = xa.yolo

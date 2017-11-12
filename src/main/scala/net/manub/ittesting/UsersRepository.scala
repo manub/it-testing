@@ -8,17 +8,13 @@ import cats.implicits._
 import fs2.Task
 import fs2.interop.cats._
 
-class UsersRepository(config: Config) {
-
-  val url = config.getString("database.url")
-  val username = config.getString("database.username")
-  val password = config.getString("database.password")
+class UsersRepository(override val config: Config) extends PostgresConfiguration {
 
   val xa = DriverManagerTransactor[Task](
-    "org.postgresql.Driver",
-    url,
-    username,
-    password
+    PostgresDriver,
+    postgresUrl,
+    postgresUsername,
+    postgresPassword
   )
 
   val getAllUsers: Task[List[User]] =

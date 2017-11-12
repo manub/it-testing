@@ -1,6 +1,6 @@
 package net.manub.ittesting
 
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import fs2.{Stream, Task}
 import io.circe.generic.auto._
 import io.circe.syntax._
@@ -11,9 +11,10 @@ import org.http4s.dsl._
 import org.http4s.server.blaze.BlazeBuilder
 import org.http4s.util.StreamApp
 
-object Main extends StreamApp {
+object Main extends StreamApp with PostgresConfiguration {
 
-  val config = ConfigFactory.load()
+  override val config: Config = ConfigFactory.load()
+
   val usersRepository = new UsersRepository(config)
 
   val helloWorldService = HttpService {
