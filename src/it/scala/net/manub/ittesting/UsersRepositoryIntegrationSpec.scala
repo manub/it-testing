@@ -10,6 +10,8 @@ import fs2.interop.cats._
 import org.flywaydb.core.Flyway
 import org.scalatest.concurrent.ScalaFutures
 
+import scala.concurrent.Future
+
 class UsersRepositoryIntegrationSpec
     extends WordSpec
     with Matchers
@@ -42,14 +44,17 @@ class UsersRepositoryIntegrationSpec
         flyway.setDataSource(postgresUrl, postgresUsername, postgresPassword)
         flyway.migrate()
 
-        val yolo = xa.yolo
-        import yolo._
+        val insertAUser =
+          sql"insert into users (username, first_name, last_name) values (${user.username}, ${user.firstName}, ${user.lastName})".update.run
+            .transact(xa)
+            .unsafeRunAsyncFuture()
 
-        sql"insert into users (username, first_name, last_name) values (${user.username}, ${user.firstName}, ${user.lastName})".update.quick.unsafeRunSync
+        val users: Future[List[User]] = for {
+          _ <- insertAUser
+          users <- repository.all.unsafeRunAsyncFuture()
+        } yield users
 
-        whenReady(repository.all.unsafeRunAsyncFuture()) { users =>
-          users should contain only user
-        }
+        users.futureValue should contain only user
       }
     }
 
@@ -57,10 +62,7 @@ class UsersRepositoryIntegrationSpec
       "persist it into the database" in {
 
         //TODO: perform database cleanup and migrations properly!
-        val yolo = xa.yolo
-        import yolo._
-
-        sql"truncate table users".update.quick.unsafeRunSync
+        sql"truncate table users".update.run.transact(xa).unsafeRunSync
 
 //        val flyway = new Flyway()
 //        flyway.setDataSource(postgresUrl, postgresUsername, postgresPassword)
