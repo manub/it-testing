@@ -18,36 +18,35 @@ trait DockerPostgresService extends DockerKit with PostgresConfiguration {
   import scala.concurrent.duration._
 
   val PostgresAdvertisedPort = 5432
-  val PostgresExposedPort = 5432
 
   lazy val postgresContainer: DockerContainer =
     DockerContainer("postgres:latest")
-      .withPorts((PostgresAdvertisedPort, Some(PostgresExposedPort)))
+      .withPorts((PostgresAdvertisedPort, Some(postgresPort)))
       .withEnv(s"POSTGRES_USER=$postgresUsername",
                s"POSTGRES_PASSWORD=$postgresPassword",
                s"POSTGRES_DB=$postgresDatabase")
       .withReadyChecker(
-        new PostgresReadyChecker(postgresUrl, postgresUsername, postgresPassword).looped(15, 1.second)
+        new PostgresReadyChecker(postgresUrl,
+                                 postgresUsername,
+                                 postgresPassword).looped(15, 1.second)
       )
 
   abstract override def dockerContainers: List[DockerContainer] =
     postgresContainer :: super.dockerContainers
 
-
 }
 
-class PostgresReadyChecker(url: String, username: String, password: String) extends DockerReadyChecker {
+class PostgresReadyChecker(url: String, username: String, password: String)
+    extends DockerReadyChecker {
 
   override def apply(container: DockerContainerState)(
-    implicit docker: DockerCommandExecutor,
-    ec: ExecutionContext): Future[Boolean] =
+      implicit docker: DockerCommandExecutor,
+      ec: ExecutionContext): Future[Boolean] =
     container
       .getPorts()
-      .map(ports =>
+      .map(_ =>
         Try {
           Class.forName("org.postgresql.Driver")
-          //          val url =
-          //            s"jdbc:postgresql://${docker.host}:${port.getOrElse(ports.values.head)}/"
           DriverManager
             .getConnection(url, username, password)
             .close()

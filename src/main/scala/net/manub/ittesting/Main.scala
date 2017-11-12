@@ -24,7 +24,7 @@ object Main extends StreamApp with PostgresConfiguration {
 
   val usersService = HttpService {
     case GET -> Root / "users" =>
-      Ok(usersRepository.getAllUsers.map(_.asJson))
+      Ok(usersRepository.all.map(_.asJson))
   }
 
   override def stream(args: List[String]): Stream[Task, Nothing] = {

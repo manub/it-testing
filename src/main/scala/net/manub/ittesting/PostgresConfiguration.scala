@@ -10,7 +10,7 @@ trait PostgresConfiguration {
   lazy val postgresPassword: String = config.getString("postgres.password")
   lazy val postgresDatabase: String = config.getString("postgres.database")
   lazy val postgresHost: String = config.getString("postgres.host")
-  lazy val postgresPort: String = config.getString("postgres.port")
+  lazy val postgresPort: Int = config.getInt("postgres.port")
   lazy val postgresUrl: String =
     s"jdbc:postgresql://$postgresHost:$postgresPort/$postgresDatabase"
 

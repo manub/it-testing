@@ -8,7 +8,8 @@ import cats.implicits._
 import fs2.Task
 import fs2.interop.cats._
 
-class UsersRepository(override val config: Config) extends PostgresConfiguration {
+class UsersRepository(override val config: Config)
+    extends PostgresConfiguration {
 
   val xa = DriverManagerTransactor[Task](
     PostgresDriver,
@@ -17,9 +18,16 @@ class UsersRepository(override val config: Config) extends PostgresConfiguration
     postgresPassword
   )
 
-  val getAllUsers: Task[List[User]] =
+  val all: Task[List[User]] =
     sql"select username, first_name, last_name FROM users"
       .query[User]
       .list
       .transact(xa)
+
+  def save(user: User): Task[Int] = {
+    sql"insert into users (username, first_name, last_name) values (${user.username}, ${user.firstName}, ${user.lastName})"
+      .update
+      .run
+      .transact(xa)
+  }
 }
