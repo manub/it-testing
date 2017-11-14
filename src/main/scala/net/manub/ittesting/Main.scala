@@ -40,7 +40,7 @@ object Main extends StreamApp with PostgresConfiguration {
   }
 
   // non-pure!
-  private def migrateDatabase() = {
+  private def migrateDatabase(): Unit = {
     val flyway = new Flyway()
     flyway.setDataSource(config.getString("database.url"),
       config.getString("database.username"),

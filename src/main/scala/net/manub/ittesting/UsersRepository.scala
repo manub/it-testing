@@ -24,10 +24,9 @@ class UsersRepository(override val config: Config)
       .list
       .transact(xa)
 
-  def save(user: User): Task[Int] = {
+  def save(user: User): Task[Int] =
     sql"insert into users (username, first_name, last_name) values (${user.username}, ${user.firstName}, ${user.lastName})"
       .update
       .run
       .transact(xa)
-  }
 }

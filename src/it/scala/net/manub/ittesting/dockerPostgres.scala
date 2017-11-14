@@ -21,7 +21,7 @@ trait DockerPostgresService extends DockerKit with PostgresConfiguration {
 
   lazy val postgresContainer: DockerContainer =
     DockerContainer("postgres:latest")
-      .withPorts((PostgresAdvertisedPort, Some(postgresPort)))
+      .withPorts(PostgresAdvertisedPort -> Some(postgresPort))
       .withEnv(s"POSTGRES_USER=$postgresUsername",
                s"POSTGRES_PASSWORD=$postgresPassword",
                s"POSTGRES_DB=$postgresDatabase")
@@ -46,7 +46,7 @@ class PostgresReadyChecker(url: String, username: String, password: String)
       .getPorts()
       .map(_ =>
         Try {
-          Class.forName("org.postgresql.Driver")
+//          Class.forName("org.postgresql.Driver")
           DriverManager
             .getConnection(url, username, password)
             .close()
