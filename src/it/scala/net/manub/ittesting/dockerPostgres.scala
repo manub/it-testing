@@ -20,7 +20,7 @@ trait DockerPostgresService extends DockerKit with PostgresConfiguration {
   val PostgresAdvertisedPort = 5432
 
   lazy val postgresContainer: DockerContainer =
-    DockerContainer("postgres:latest")
+    DockerContainer(image = "postgres:latest")
       .withPorts(PostgresAdvertisedPort -> Some(postgresPort))
       .withEnv(s"POSTGRES_USER=$postgresUsername",
                s"POSTGRES_PASSWORD=$postgresPassword",
@@ -43,10 +43,9 @@ class PostgresReadyChecker(url: String, username: String, password: String)
       implicit docker: DockerCommandExecutor,
       ec: ExecutionContext): Future[Boolean] =
     container
-      .getPorts()
+      .isRunning()
       .map(_ =>
         Try {
-//          Class.forName("org.postgresql.Driver")
           DriverManager
             .getConnection(url, username, password)
             .close()
