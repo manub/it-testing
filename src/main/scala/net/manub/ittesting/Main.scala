@@ -17,34 +17,30 @@ object Main extends StreamApp with PostgresConfiguration {
 
   val usersRepository = new UsersRepository(config)
 
-  val helloWorldService = HttpService {
-    case GET -> Root / "hello" / name =>
-      Ok(s"Hello, $name!")
-  }
-
   val usersService = HttpService {
     case GET -> Root / "users" =>
       Ok(usersRepository.all.map(_.asJson))
+    case req @ POST -> Root / "users" =>
+      for {
+        user <- req.as(jsonOf[User])
+        _ <- usersRepository.save(user)
+        resp <- Ok(user.asJson)
+      } yield resp
   }
 
   override def stream(args: List[String]): Stream[Task, Nothing] = {
-
     migrateDatabase()
 
     BlazeBuilder
       .bindHttp(8080, "localhost")
-      .mountService(helloWorldService)
       .mountService(usersService)
       .serve
-
   }
 
   // non-pure!
   private def migrateDatabase(): Unit = {
     val flyway = new Flyway()
-    flyway.setDataSource(config.getString("database.url"),
-      config.getString("database.username"),
-      config.getString("database.password"))
+    flyway.setDataSource(postgresUrl, postgresUsername, postgresPassword)
     flyway.migrate()
   }
 }

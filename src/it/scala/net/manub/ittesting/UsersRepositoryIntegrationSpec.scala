@@ -4,7 +4,7 @@ import com.typesafe.config.ConfigFactory
 import com.whisk.docker.impl.spotify.DockerKitSpotify
 import doobie.imports._
 import fs2.Task
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Matchers, WordSpec}
 import com.whisk.docker.scalatest.DockerTestKit
 import fs2.interop.cats._
 import org.flywaydb.core.Flyway
@@ -17,13 +17,15 @@ class UsersRepositoryIntegrationSpec
     with Matchers
     with ScalaFutures
     with PostgresConfiguration
+    with BeforeAndAfterAll
+    with BeforeAndAfterEach
     with DockerTestKit // scalatest integration
     with DockerKitSpotify // docker client implementation
     with DockerPostgresService { // container rules
 
   override val config = ConfigFactory.load()
 
-  val xa = DriverManagerTransactor[Task](
+  val transactor = DriverManagerTransactor[Task](
     PostgresDriver,
     postgresUrl,
     postgresUsername,
@@ -31,6 +33,19 @@ class UsersRepositoryIntegrationSpec
   )
 
   val repository = new UsersRepository(config)
+
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    // if you want to write more integration test suites and run the migration only once, a different approach is needed
+    val flyway = new Flyway()
+    flyway.setDataSource(postgresUrl, postgresUsername, postgresPassword)
+    flyway.migrate()
+  }
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    sql"truncate table users".update.run.transact(transactor).unsafeRunSync
+  }
 
   "users repository" when {
 
@@ -40,13 +55,9 @@ class UsersRepositoryIntegrationSpec
     "getting all the users" should {
       "return all users on the database" in {
 
-        val flyway = new Flyway()
-        flyway.setDataSource(postgresUrl, postgresUsername, postgresPassword)
-        flyway.migrate()
-
         val insertAUser =
           sql"insert into users (username, first_name, last_name) values (${user.username}, ${user.firstName}, ${user.lastName})".update.run
-            .transact(xa)
+            .transact(transactor)
             .unsafeRunAsyncFuture()
 
         val users: Future[List[User]] = for {
@@ -61,14 +72,6 @@ class UsersRepositoryIntegrationSpec
     "saving a user" should {
       "persist it into the database" in {
 
-        //TODO: perform database cleanup and migrations properly!
-        sql"truncate table users".update.run.transact(xa).unsafeRunSync
-
-//        val flyway = new Flyway()
-//        flyway.setDataSource(postgresUrl, postgresUsername, postgresPassword)
-//        flyway.migrate()
-//
-
         whenReady(repository.save(user).unsafeRunAsyncFuture()) {
           numberOfRows =>
             numberOfRows shouldBe 1
@@ -76,7 +79,7 @@ class UsersRepositoryIntegrationSpec
             sql"select username, first_name, last_name FROM users"
               .query[User]
               .list
-              .transact(xa)
+              .transact(transactor)
               .unsafeRunAsyncFuture()
               .futureValue should contain only user
         }

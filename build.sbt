@@ -8,7 +8,6 @@ lazy val commonSettings = Seq(
 val http4sVersion = "0.17.5"
 val doobieVersion = "0.4.4"
 
-
 libraryDependencies ++= Seq(
   "org.http4s" %% "http4s-dsl" % http4sVersion,
   "org.http4s" %% "http4s-blaze-server" % http4sVersion,
@@ -24,6 +23,5 @@ libraryDependencies ++= Seq(
   "com.whisk" %% "docker-testkit-scalatest" % "0.9.5" % IntegrationTest,
   "com.whisk" %% "docker-testkit-impl-spotify" % "0.9.5" % IntegrationTest
 )
-
 
 lazy val root = (project in file(".")).configs(IntegrationTest).settings(commonSettings, Defaults.itSettings)
